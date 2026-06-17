@@ -1,7 +1,7 @@
 /*
  * Interfaces over Yamaha OPL3 (YMF262) chip emulators
  *
- * Copyright (c) 2017-2025 Vitaly Novichkov (Wohlstand)
+ * Copyright (c) 2017-2026 Vitaly Novichkov (Wohlstand)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,6 +21,7 @@
 #include "ymfm_opn2.h"
 #include "ymfm/ymfm_opn.h"
 #include <cstring>
+#include <assert.h>
 
 YmFmOPN2::YmFmOPN2(OPNFamily f) :
     OPNChipBaseT(f),
@@ -31,7 +32,7 @@ YmFmOPN2::YmFmOPN2(OPNFamily f) :
     ymfm::ymfm_interface* intf = new ymfm::ymfm_interface;
     m_intf = intf;
     m_chip = new ymfm::ym2612(*intf);
-    setRate(m_rate, m_clock);
+    YmFmOPN2::setRate(m_rate, m_clock);
 }
 
 YmFmOPN2::~YmFmOPN2()
@@ -66,6 +67,7 @@ void YmFmOPN2::writeReg(uint32_t port, uint16_t addr, uint8_t data)
         m_headPos = 0;
 
     ++m_queueCount;
+    assert(m_queueCount < (long)c_queueSize);
 }
 
 void YmFmOPN2::writePan(uint16_t addr, uint8_t data)
@@ -112,4 +114,9 @@ void YmFmOPN2::nativeGenerate(int16_t *frame)
 const char *YmFmOPN2::emulatorName()
 {
     return "YMFM OPN2";
+}
+
+bool YmFmOPN2::hasFullPanning()
+{
+    return true;
 }

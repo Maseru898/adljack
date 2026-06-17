@@ -2,7 +2,7 @@
  * libADLMIDI is a free Software MIDI synthesizer library with OPL3 emulation
  *
  * Original ADLMIDI code: Copyright (c) 2010-2014 Joel Yliluoma <bisqwit@iki.fi>
- * ADLMIDI Library API:   Copyright (c) 2017-2025 Vitaly Novichkov <admin@wohlnet.ru>
+ * ADLMIDI Library API:   Copyright (c) 2017-2026 Vitaly Novichkov <admin@wohlnet.ru>
  *
  * Library is based on the ADLMIDI, a MIDI player for Linux and Windows with OPL3 emulation:
  * http://iki.fi/bisqwit/source/adlmidi.html
@@ -183,6 +183,13 @@ inline int32_t opn2_cvtU32(int32_t x)
 {
     // unsigned operation because overflow on signed integers is undefined
     return (uint32_t)opn2_cvtS32(x) - (uint32_t)INT32_MIN;
+}
+
+template<typename T>
+void opn2_fill_vector(std::vector<T > &v, const T &value)
+{
+    for(typename std::vector<T>::iterator it = v.begin(); it != v.end(); ++it)
+        *it = value;
 }
 
 #if defined(ADLMIDI_AUDIO_TICK_HANDLER)

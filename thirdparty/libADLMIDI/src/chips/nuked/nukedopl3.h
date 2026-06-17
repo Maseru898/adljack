@@ -37,7 +37,7 @@
 extern "C" {
 #endif
 
-#include <inttypes.h>
+#include <stdint.h> /* IWYU pragma: keep */
 
 #ifndef OPL_ENABLE_STEREOEXT
 #define OPL_ENABLE_STEREOEXT 0
@@ -47,7 +47,7 @@ extern "C" {
 #define OPL_FAST_WAVEGEN 1 /* optimized waveform generation */
 #endif
 
-#define OPL_WRITEBUF_SIZE   1024
+#define OPL_WRITEBUF_SIZE   2048
 #define OPL_WRITEBUF_DELAY  2
 
 typedef struct _opl3_slot opl3_slot;
@@ -130,6 +130,7 @@ struct _opl3_chip {
     uint8_t eg_timerrem;
     uint8_t eg_state;
     uint8_t eg_add;
+    uint8_t eg_timer_lo;
     uint8_t newm;
     uint8_t nts;
     uint8_t rhy;

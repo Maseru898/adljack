@@ -1,7 +1,7 @@
 /*
  * Interfaces over Yamaha OPN2 (YM2612) chip emulators
  *
- * Copyright (C) 2025 Vitaly Novichkov (Wohlstand)
+ * Copyright (C) 2026 Vitaly Novichkov (Wohlstand)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -81,4 +81,9 @@ void PMDWinOPNA::nativeGenerateN(int16_t *output, size_t frames)
 const char *PMDWinOPNA::emulatorName()
 {
     return "PMDWin OPNA";  // git 2018-05-11 rev 255ef52
+}
+
+bool PMDWinOPNA::hasFullPanning()
+{
+    return true;
 }

@@ -1,7 +1,7 @@
 /*****************************************************************************
  * libopnmidi.c: Software MIDI synthesizer using OPN2 Synth emulation
  *****************************************************************************
- * Copyright © 2017-2025 Vitaly Novichkov
+ * Copyright © 2017-2026 Vitaly Novichkov
  * $Id$
  *
  * This program is free software: you can redistribute it and/or modify
@@ -147,6 +147,16 @@ static const int emulator_type_values[] =
 #ifdef USE_YMFM_EMULATOR
     (int)OPNMIDI_EMU_YMFM_OPNA,
 #endif
+
+#ifdef OPNMIDI_ENABLE_OPNA_LLE_EMULATOR
+    (int)OPNMIDI_EMU_NUKED_YM2608_LLE,
+#endif
+
+#ifdef OPNMIDI_ENABLE_OPN2_LLE_EMULATOR
+    (int)OPNMIDI_EMU_NUKED_YM2612_LLE,
+    (int)OPNMIDI_EMU_NUKED_YM3438_LLE,
+    (int)OPNMIDI_EMU_NUKED_YMF276_LLE,
+#endif
 };
 static const char * const emulator_type_descriptions[] =
 {
@@ -163,7 +173,7 @@ static const char * const emulator_type_descriptions[] =
     N_("GENS/GS II OPN2"),
 #endif
 
-#ifdef USE_YMFM_EMULATOR
+#ifndef OPNMIDI_DISABLE_YMFM_EMULATOR
     N_("YMFM OPN2"),
 #endif
 
@@ -175,8 +185,18 @@ static const char * const emulator_type_descriptions[] =
     N_("MAME YM2610 (OPNA)"),
 #endif
 
-#ifdef USE_YMFM_EMULATOR
+#ifndef OPNMIDI_DISABLE_YMFM_EMULATOR
     N_("YMFM OPNA"),
+#endif
+
+#ifdef OPNMIDI_ENABLE_OPNA_LLE_EMULATOR
+    N_("Nuked OPNA-YM2608 LLE [!EXTRA HEAVY!]"),
+#endif
+
+#ifdef OPNMIDI_ENABLE_OPN2_LLE_EMULATOR
+    N_("Nuked OPN2-YM2612 LLE [!EXTRA HEAVY!]"),
+    N_("Nuked OPN2-YM3438 LLE [!EXTRA HEAVY!]"),
+    N_("Nuked OPN2-YMF276 LLE [!EXTRA HEAVY!]"),
 #endif
     NULL
 };

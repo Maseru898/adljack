@@ -1,7 +1,7 @@
 /*
  * Interfaces over Yamaha OPL3 (YMF262) chip emulators
  *
- * Copyright (c) 2017-2025 Vitaly Novichkov (Wohlstand)
+ * Copyright (c) 2017-2026 Vitaly Novichkov (Wohlstand)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -19,7 +19,6 @@
  */
 
 #include "ym3812_lle.h"
-#include "ym3812_lle/nuked_fmopl2.h"
 #include "ym3812_lle/nopl2.h"
 #include <cstring>
 
@@ -27,13 +26,12 @@ Ym3812LLEOPL2::Ym3812LLEOPL2() :
     OPLChipBaseT()
 {
     m_chip = nopl2_init(14318182, m_rate);
-    setRate(m_rate);
+    Ym3812LLEOPL2::setRate(m_rate);
 }
 
 Ym3812LLEOPL2::~Ym3812LLEOPL2()
 {
-    fmopl2_t *chip_r = reinterpret_cast<fmopl2_t*>(m_chip);
-    nopl2_shutdown(chip_r);
+    nopl2_shutdown(m_chip);
 }
 
 void Ym3812LLEOPL2::setRate(uint32_t rate)
@@ -50,8 +48,7 @@ void Ym3812LLEOPL2::reset()
 
 void Ym3812LLEOPL2::writeReg(uint16_t addr, uint8_t data)
 {
-    nopl2_write(m_chip, 2 * ((addr >> 8) & 3), addr);
-    nopl2_write(m_chip, 1, data);
+    nopl2_write_buf(m_chip, addr, data);
 }
 
 void Ym3812LLEOPL2::writePan(uint16_t addr, uint8_t data)

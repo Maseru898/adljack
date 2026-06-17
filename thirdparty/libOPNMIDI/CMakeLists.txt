@@ -1,7 +1,8 @@
-cmake_minimum_required (VERSION 3.2...3.10)
-project(libOPNMIDI VERSION 1.5.1 LANGUAGES C CXX)
+cmake_minimum_required (VERSION 3.2...4.0)
+project(libOPNMIDI VERSION 1.6.1 LANGUAGES C CXX)
 
 include(GNUInstallDirs)
+include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
 
 # Prefer C90 standard
@@ -24,8 +25,23 @@ else()
     endif()
 endif()
 
+function(CheckCPP14Build OUTVAR)
+    set(CMAKE_CXX_STANDARD 14)
+    try_compile(${OUTVAR}
+        ${CMAKE_CURRENT_BINARY_DIR}/cmake-checks
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/checks/cpp14.cpp
+        CMAKE_FLAGS -DCMAKE_CXX_FLAGS=${FLAG_CPP14}
+    )
+endfunction()
+
 if(COMPILER_SUPPORTS_CXX14)
-    message("== Your C++ compiler supports C++14, YMFM emulator will be ENABLED")
+    CheckCPP14Build(COMPILER_BUILDS_CXX14)
+    if(COMPILER_BUILDS_CXX14)
+        message("== Your C++ compiler supports C++14, YMFM emulator will be ENABLED")
+    else()
+        message("== Your C++ compiler can't build C++14, YMFM emulator will be DISABLED")
+        set(COMPILER_SUPPORTS_CXX14 FALSE)
+    endif()
 else()
     message("== Your C++ compiler does NOT supports C++14, YMFM emulator will be DISABLED")
 endif()
@@ -51,6 +67,12 @@ elseif(NOT MSVC AND NOT MSDOS AND NOT OPENBSD_LOCALBASE)
             CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O2 -fdata-sections -ffunction-sections")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -fdata-sections -ffunction-sections")
+    string(REGEX REPLACE "-O3" ""
+           CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO}")
+    string(REGEX REPLACE "-O3" ""
+           CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO}")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O2 -fdata-sections -ffunction-sections")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O2 -fdata-sections -ffunction-sections")
     if(ANDROID)
         set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -funwind-tables")
         set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -funwind-tables")
@@ -67,6 +89,8 @@ if(NOT MSVC AND NOT MSDOS)
 # Global optimization flags
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fno-omit-frame-pointer")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fno-omit-frame-pointer")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer")
+    set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -fno-omit-frame-pointer")
 # Turn on all warnings
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")
@@ -117,8 +141,18 @@ if(WIN32)
     add_definitions(-DUNICODE -D_UNICODE)
 endif()
 
+if(NOT WIN32 AND CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+    check_c_compiler_flag("-no-pie" HAS_NO_PIE)
+endif()
+
+function(set_nopie _target)
+    if(NOT WIN32 AND HAS_NO_PIE AND CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+        set_property(TARGET ${_target} APPEND_STRING PROPERTY LINK_FLAGS " -no-pie")
+    endif()
+endfunction()
+
 function(set_legacy_standard destTarget)
-    if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
+    if((CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX) AND CMAKE_VERSION VERSION_GREATER 3.2)
         # Turn on warnings and legacy C/C++ standards to support more compilers
         target_compile_options(${destTarget} PRIVATE
             $<$<COMPILE_LANGUAGE:C>:-Wall -pedantic -std=gnu90>
@@ -140,7 +174,7 @@ function(set_visibility_hidden destTarget)
 endfunction()
 #===========================================================================================
 
-if(VITA OR NINTENDO_3DS OR NINTENDO_WII OR NINTENDO_WIIU)
+if(VITA OR PSP OR PS2 OR NINTENDO_3DS OR NINTENDO_WII OR NINTENDO_WIIU)
     set(DEFAULT_HEAVY_EMULATORS OFF)
 else()
     set(DEFAULT_HEAVY_EMULATORS ON)
@@ -148,6 +182,8 @@ endif()
 
 if(NOT EMSCRIPTEN
    AND NOT VITA
+   AND NOT PSP
+   AND NOT PS2
    AND NOT NINTENDO_3DS
    AND NOT NINTENDO_WII
    AND NOT NINTENDO_WIIU
@@ -171,7 +207,6 @@ endif()
 
 option(WITH_MIDI_SEQUENCER  "Build with embedded MIDI sequencer. Disable this if you want use library in real-time MIDI drivers or plugins.)" ON)
 option(WITH_HQ_RESAMPLER    "Build with support for high quality resampling" OFF)
-option(WITH_MUS_SUPPORT     "Build with support for DMX MUS files)" ON)
 option(WITH_XMI_SUPPORT     "Build with support for AIL XMI files)" ON)
 option(USE_MAME_EMULATOR    "Use MAME YM2612 emulator (for most of hardware)" ON)
 option(USE_GENS_EMULATOR    "Use GENS 2.10 emulator (fastest, very outdated, inaccurate)" ON)
@@ -180,6 +215,8 @@ option(USE_NUKED_EMULATOR   "Use Nuked OPN2 emulator (most accurate, heavy)" ${D
 option(USE_NP2_EMULATOR     "Use Neko Project II emulator" ON)
 option(USE_MAME_2608_EMULATOR "Use MAME YM2608 emulator" ON)
 # option(USE_PMDWIN_EMULATOR  "Use PMDWin emulator (experimental)" OFF)
+option(USE_NUKED_OPN2_LLE_EMULATOR  "Use Nuked OPN2-LLE emulator [!EXTRA HEAVY!]" OFF)
+option(USE_NUKED_OPNA_LLE_EMULATOR  "Use Nuked OPNA-LLE emulator [!EXTRA HEAVY!]" OFF)
 option(USE_VGM_FILE_DUMPER  "Use VGM File Dumper (required to build the MIDI2VGM tool)" ON)
 if(COMPILER_SUPPORTS_CXX14)
     option(USE_YMFM_EMULATOR    "Use YMFM emulator (requires C++14 support)" ON)
@@ -188,6 +225,7 @@ endif()
 # option(WITH_CPP_EXTRAS      "Build with support for C++ extras (features are can be found in 'adlmidi.hpp' header)" OFF)
 
 option(WITH_MIDIPLAY        "Build also demo MIDI player" OFF)
+option(MIDIPLAY_WAVE_ONLY   "Build Demo MIDI player without support of real time playing. It will output into WAV only." OFF)
 option(WITH_MIDI2VGM        "Build also MIDI to VGM converter tool" OFF)
 option(WITH_WOPN2HPP        "Build also the WOPN to C++ header source converter tool" OFF)
 option(WITH_VLC_PLUGIN      "Build also a plugin for VLC Media Player" OFF)
@@ -206,6 +244,8 @@ link_directories(${libOPNMIDI_BINARY_DIR}/)
 
 set(libOPNMIDI_SOURCES)
 
+include(src/models/opn_models.cmake)
+
 list(APPEND libOPNMIDI_SOURCES
     ${libOPNMIDI_SOURCE_DIR}/src/opnmidi.cpp
     ${libOPNMIDI_SOURCE_DIR}/src/opnmidi_load.cpp
@@ -213,6 +253,7 @@ list(APPEND libOPNMIDI_SOURCES
     ${libOPNMIDI_SOURCE_DIR}/src/opnmidi_opn2.cpp
     ${libOPNMIDI_SOURCE_DIR}/src/opnmidi_private.cpp
     ${libOPNMIDI_SOURCE_DIR}/src/wopn/wopn_file.c
+    ${OPN_MODELS_SOURCES}
 )
 
 # Make headers being properly visible at IDEs
@@ -220,6 +261,9 @@ file(GLOB libOPNMIDI_HEADERS
     ${libOPNMIDI_SOURCE_DIR}/include/*.h
     ${libOPNMIDI_SOURCE_DIR}/src/*.h
     ${libOPNMIDI_SOURCE_DIR}/src/*.hpp
+    ${libOPNMIDI_SOURCE_DIR}/src/midiseq/*.h
+    ${libOPNMIDI_SOURCE_DIR}/src/midiseq/*.hpp
+    ${libOPNMIDI_SOURCE_DIR}/src/midiseq/impl/*.hpp
     ${libOPNMIDI_SOURCE_DIR}/src/wopn/*.h
     ${libOPNMIDI_SOURCE_DIR}/src/structures/*.hpp
     ${libOPNMIDI_SOURCE_DIR}/src/chips/*.h
@@ -240,10 +284,6 @@ if(WITH_MIDI_SEQUENCER)
         ${libOPNMIDI_SOURCE_DIR}/src/opnmidi_sequencer.cpp
     )
     add_definitions(-DENABLE_END_SILENCE_SKIPPING)
-endif()
-
-if(NOT WITH_MUS_SUPPORT OR NOT WITH_MIDI_SEQUENCER)
-    add_definitions(-DBWMIDI_DISABLE_MUS_SUPPORT)
 endif()
 
 if(NOT WITH_XMI_SUPPORT OR NOT WITH_MIDI_SEQUENCER)
@@ -327,6 +367,47 @@ endif()
 #    add_definitions(-DOPNMIDI_DISABLE_PMDWIN_EMULATOR)
 #endif()
 
+if(USE_NUKED_OPN2_LLE_EMULATOR)
+    list(APPEND libOPNMIDI_SOURCES
+        # YM2612
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/ym2612_lle.cpp
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/ym2612_lle.h
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/nopn2.c
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/nopn2.h
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/fmopna_2612.c
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/fmopna_2612.h
+
+        # YMF276 + YM3438
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/ymf276_lle.cpp
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/ymf276_lle.h
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/nopn2f.c
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/nopn2f.h
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/fmopn2.c
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/fmopn2.h
+    )
+    set(HAS_EMULATOR TRUE)
+endif()
+
+if(USE_NUKED_OPNA_LLE_EMULATOR)
+    list(APPEND libOPNMIDI_SOURCES
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/ym2608_lle.cpp
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/ym2608_lle.h
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/nopna.c
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/nopna.h
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/fmopna_2608.c
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/fmopna_2608.h
+    )
+    set(HAS_EMULATOR TRUE)
+endif()
+
+if(USE_NUKED_OPN2_LLE_EMULATOR OR USE_NUKED_OPNA_LLE_EMULATOR)
+    list(APPEND libOPNMIDI_SOURCES
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/fmopna_impl.h
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/fmopna_impl_c.h
+        ${libOPNMIDI_SOURCE_DIR}/src/chips/nuked_lle/fmopna_rom.h
+    )
+endif()
+
 if(USE_VGM_FILE_DUMPER)
     list(APPEND libOPNMIDI_SOURCES
         ${libOPNMIDI_SOURCE_DIR}/src/chips/vgm_file_dumper.cpp)
@@ -363,6 +444,8 @@ endif()
 
 if(NOT WIN32
    AND NOT VITA
+   AND NOT PSP
+   AND NOT PS2
    AND NOT NINTENDO_3DS
    AND NOT NINTENDO_WII
    AND NOT NINTENDO_WIIU
@@ -372,6 +455,16 @@ if(NOT WIN32
 else()
     set(ENABLE_FPIC OFF)
 endif()
+
+function(handle_options targetLib)
+    if(USE_NUKED_OPN2_LLE_EMULATOR)
+        target_compile_definitions(${targetLib} PUBLIC -DOPNMIDI_ENABLE_OPN2_LLE_EMULATOR)
+    endif()
+
+    if(USE_NUKED_OPNA_LLE_EMULATOR)
+        target_compile_definitions(${targetLib} PUBLIC -DOPNMIDI_ENABLE_OPNA_LLE_EMULATOR)
+    endif()
+endfunction()
 
 # === Static library ====
 if(libOPNMIDI_STATIC OR WITH_VLC_PLUGIN)
@@ -384,6 +477,7 @@ if(libOPNMIDI_STATIC OR WITH_VLC_PLUGIN)
     target_include_directories(OPNMIDI_static PUBLIC $<BUILD_INTERFACE:${libOPNMIDI_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
     set_legacy_standard(OPNMIDI_static)
     set_visibility_hidden(OPNMIDI_static)
+    handle_options(OPNMIDI_static)
 
     # -fPIC thing
     if(ENABLE_FPIC)
@@ -406,6 +500,7 @@ if(libOPNMIDI_SHARED)
     target_include_directories(OPNMIDI_shared PUBLIC $<BUILD_INTERFACE:${libOPNMIDI_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
     set_legacy_standard(OPNMIDI_shared)
     set_visibility_hidden(OPNMIDI_shared)
+    handle_options(OPNMIDI_shared)
 
     if(WIN32)
         target_compile_definitions(OPNMIDI_shared PRIVATE "-DOPNMIDI_BUILD_DLL")
@@ -435,10 +530,42 @@ if(libOPNMIDI_STATIC OR WITH_VLC_PLUGIN)
 endif()
 
 if(libOPNMIDI_SHARED)
-  target_link_libraries(OPNMIDI_IF INTERFACE OPNMIDI_shared)
+    target_link_libraries(OPNMIDI_IF INTERFACE OPNMIDI_shared)
 else()
-  target_link_libraries(OPNMIDI_IF INTERFACE OPNMIDI_static)
+    target_link_libraries(OPNMIDI_IF INTERFACE OPNMIDI_static)
 endif()
+
+function(libOPNMIDI_find_SDL2)
+    if(NOT TARGET OPNMIDI_SDL2)
+        find_package(SDL2 REQUIRED)
+        add_library(OPNMIDI_SDL2 INTERFACE)
+        if(TARGET SDL2::SDL2)
+            target_link_libraries(OPNMIDI_SDL2 INTERFACE SDL2::SDL2)
+            target_include_directories(OPNMIDI_SDL2 INTERFACE ${SDL2_INCLUDE_DIRS})
+        else()
+            string(STRIP ${SDL2_LIBRARIES} SDL2_LIBRARIES)
+            target_include_directories(OPNMIDI_SDL2 INTERFACE ${SDL2_INCLUDE_DIRS})
+            target_link_libraries(OPNMIDI_SDL2 INTERFACE ${SDL2_LIBRARIES})
+        endif()
+    endif()
+endfunction()
+
+function(libOPNMIDI_find_SDL3)
+    if(NOT TARGET OPNMIDI_SDL3)
+        find_package(SDL3 QUIET)
+        if(SDL3_FOUND)
+            add_library(OPNMIDI_SDL3 INTERFACE)
+            if(TARGET SDL3::SDL3)
+                target_link_libraries(OPNMIDI_SDL3 INTERFACE SDL3::SDL3)
+                target_include_directories(OPNMIDI_SDL3 INTERFACE ${SDL3_INCLUDE_DIRS})
+            else()
+                string(STRIP ${SDL3_LIBRARIES} SDL3_LIBRARIES)
+                target_include_directories(OPNMIDI_SDL3 INTERFACE ${SDL3_INCLUDE_DIRS})
+                target_link_libraries(OPNMIDI_SDL3 INTERFACE ${SDL3_LIBRARIES})
+            endif()
+        endif()
+    endif()
+endfunction()
 
 if(WITH_MIDIPLAY)
     add_subdirectory(utils/midiplay)
@@ -565,7 +692,6 @@ message("WITH_UNIT_TESTS          = ${WITH_UNIT_TESTS}")
 # message("WITH_CPP_EXTRAS          = ${WITH_CPP_EXTRAS}")
 message("WITH_MIDI_SEQUENCER      = ${WITH_MIDI_SEQUENCER}")
 message("WITH_HQ_RESAMPLER        = ${WITH_HQ_RESAMPLER}")
-message("WITH_MUS_SUPPORT         = ${WITH_MUS_SUPPORT}")
 message("WITH_XMI_SUPPORT         = ${WITH_XMI_SUPPORT}")
 message("USE_MAME_EMULATOR        = ${USE_MAME_EMULATOR}")
 message("USE_GENS_EMULATOR        = ${USE_GENS_EMULATOR}")
@@ -575,10 +701,24 @@ message("USE_NP2_EMULATOR         = ${USE_NP2_EMULATOR}")
 message("USE_MAME_2608_EMULATOR   = ${USE_MAME_2608_EMULATOR}")
 #message("USE_PMDWIN_EMULATOR      = ${USE_PMDWIN_EMULATOR}")
 message("USE_VGM_FILE_DUMPER      = ${USE_VGM_FILE_DUMPER}")
-message("USE_YMFM_EMULATOR        = ${USE_YMFM_EMULATOR}")
+if(COMPILER_SUPPORTS_CXX14)
+    message("USE_YMFM_EMULATOR        = ${USE_YMFM_EMULATOR}")
+else()
+    message("USE_YMFM_EMULATOR        = OFF <lack of C++14>")
+endif()
+if(USE_NUKED_OPN2_LLE_EMULATOR OR USE_NUKED_OPNA_LLE_EMULATOR)
+    message(WARNING "You enabled EXTRA-HEAVY LLE emulators, they do REALLY require \
+VERY POWERFUL processor to work (For example, on Intel Core i7-11700KF (8 cores, 3.60 GHz) \
+they can work in real-time only when they built with Release optimisations, Debug builds \
+are choppy even single chip run). You can't use them on weak devices, don't even think to \
+run them on mobile. I warned. If you want, feel free to optimize them and contribute your \
+updates to @NukeYkt who created them. The only way you can use them on weaker hardware \
+is record WAVs where real-time performance doesn't matter.")
+endif()
 
 message("===== Utils and extras =====")
 message("WITH_MIDIPLAY            = ${WITH_MIDIPLAY}")
+message("MIDIPLAY_WAVE_ONLY       = ${MIDIPLAY_WAVE_ONLY}")
 message("WITH_WOPN2HPP            = ${WITH_WOPN2HPP}")
 message("WITH_VLC_PLUGIN          = ${WITH_VLC_PLUGIN}")
 message("WITH_DAC_UTIL            = ${WITH_DAC_UTIL}")

@@ -1,7 +1,7 @@
 # libOPNMIDI
 libOPNMIDI is a free Software MIDI synthesizer library with OPN2 (YM2612) and OPNA (YM2608) emulation.
 
-OPNMIDI Library: Copyright (c) 2017-2025 Vitaly Novichkov <admin@wohlnet.ru>
+OPNMIDI Library: Copyright (c) 2017-2026 Vitaly Novichkov <admin@wohlnet.ru>
 
 Library is based on core of the [libADLMIDI](https://github.com/Wohlstand/libADLMIDI), a MIDI playing library with OPL3 emulation.
 
@@ -164,7 +164,23 @@ To remove MIDI Sequencer, define `OPNMIDI_DISABLE_MIDI_SEQUENCER` macro and remo
 * [OPNMIDI Player for Android](https://github.com/Wohlstand/OPNMIDI-Player-Java/) - a little MIDI-player for Android which uses libOPNMIDI to play MIDI files and provides flexible GUI with ability to change bank, flags, number of emulated chips, etc.
 
 # Changelog
-## dev
+## 1.6.2   dev
+ * Added support for HMI and HMP files!
+ * Added support for in-track (local) loops.
+ * Added support for HMI and HMP files!
+ * Added support for in-track (local) loops.
+ * Optimized work with chip instruments.
+ * Fixed the silence problem at the MIDI channel after playing too many notes without Note OFF event.
+ * Added `opn2_setDeviceFilterMask()` public API to assign the device filter mask for the HMI/HMP/EMIDI tracks disabling/enabling.
+
+## 1.6.1   2025-09-22
+ * Added four extra heavy but very accurate Nuked LLE emulators (on weak machines suitable for WAV writing only).
+ * WinMM: Fixed random crash on waveOutOpen initialisation because of incorrect initialisation structure usage.
+ * Fixed crash when playing too many notes at the same channel.
+ * WinMM: Fixed sound damange when switching between banks while playing some music streams.
+ * Fixed the playback distortion while switching between OPN2 and OPNA family banks.
+
+## 1.6.0   2025-07-05
  * Fixed the work on big endian processors
  * Fixed ARM64 build on some platforms
  * Improved support of the EA-MUS files (Thanks to [dashodanger](https://github.com/dashodanger))

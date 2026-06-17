@@ -1,7 +1,7 @@
 /*
  * Interfaces over Yamaha OPN2 (YM2612) chip emulators
  *
- * Copyright (c) 2018-2025 Vitaly Novichkov (Wohlstand)
+ * Copyright (c) 2018-2026 Vitaly Novichkov (Wohlstand)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -64,7 +64,7 @@ MameOPNA::MameOPNA(OPNFamily f)
     impl->chip = NULL;
     impl->psgrsm = NULL;
     impl->psgbuffer = NULL;
-    setRate(m_rate, m_clock);
+    MameOPNA::setRate(m_rate, m_clock);
 }
 
 MameOPNA::~MameOPNA()
@@ -169,6 +169,11 @@ void MameOPNA::nativeGenerateN(int16_t *output, size_t frames)
 const char *MameOPNA::emulatorName()
 {
     return "MAME YM2608";  // git 2018-12-15 rev 8ab05c0
+}
+
+bool MameOPNA::hasFullPanning()
+{
+    return true;
 }
 
 uint8_t MameOPNA::Impl::cbInternalReadByte(device_t *dev, offs_t off)

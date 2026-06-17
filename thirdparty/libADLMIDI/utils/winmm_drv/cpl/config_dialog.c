@@ -20,6 +20,7 @@
 #define CB_SETMINVISIBLE (CBM_FIRST+1)
 #endif
 
+typedef const char*(*LinkedLibraryVersion)(void);
 typedef int (*BankNamesCount)(void);
 typedef const char *const *(*BankNamesList)(void);
 
@@ -37,6 +38,9 @@ static const char *const volume_models_descriptions[] =
     "Win9x Generic FM driver",
     "HMI Sound Operating System",
     "HMI Sound Operating System (Old)",
+    "MS AdLib (Win3x driver)",
+    "IMF Creator",
+    "Jammie O'Connel's FM Synth",
     NULL
 };
 
@@ -80,18 +84,34 @@ static const enum ADL_Emulator emulator_type_id[] =
 #ifdef ADLMIDI_ENABLE_OPL3_LLE_EMULATOR
     ADLMIDI_EMU_NUKED_OPL3_LLE,
 #endif
+#ifndef ADLMIDI_DISABLE_NUKED_EMULATOR
+    ADLMIDI_EMU_NUKED_OPL2_LITE,
+    ADLMIDI_EMU_NUKED_CQM,
+#endif
     ADLMIDI_EMU_end
 };
 
 static const char * const emulator_type_descriptions[] =
 {
+#ifndef ADLMIDI_DISABLE_NUKED_EMULATOR
     "Nuked OPL3 1.8",
-    "Nuked OPL3 1.7.4 (Optimized)",
+    "Nuked OPL3 Fast",
+#endif
+#ifndef ADLMIDI_DISABLE_DOSBOX_EMULATOR
     "DOSBox",
+#endif
+#ifndef ADLMIDI_DISABLE_OPAL_EMULATOR
     "Opal",
+#endif
+#ifndef ADLMIDI_DISABLE_JAVA_EMULATOR
     "Java OPL3",
+#endif
+#ifndef ADLMIDI_DISABLE_ESFMU_EMULATOR
     "ESFMu",
+#endif
+#ifndef ADLMIDI_DISABLE_MAME_OPL2_EMULATOR
     "MAME OPL2",
+#endif
 #ifndef ADLMIDI_DISABLE_YMFM_EMULATOR
     "YMFM OPL2",
     "YMFM OPL3",
@@ -101,6 +121,10 @@ static const char * const emulator_type_descriptions[] =
 #endif
 #ifdef ADLMIDI_ENABLE_OPL3_LLE_EMULATOR
     "Nuked OPL3-LLE [!EXTRA HEAVY!]",
+#endif
+#ifndef ADLMIDI_DISABLE_NUKED_EMULATOR
+    "Nuked OPL2 Lite",
+    "Nuked CQM",
 #endif
     NULL
 };
@@ -191,12 +215,24 @@ static void buildLists(HWND hwnd)
     const char *const* list;
     BankNamesCount adl_getBanksCount;
     BankNamesList adl_getBankNames;
+    char version_string[32];
+    LinkedLibraryVersion adl_linkedLibraryVersion;
+
+    ZeroMemory(version_string, sizeof(version_string));
 
     lib = LoadLibraryW(L"adlmididrv.dll");
     if(lib)
     {
+        adl_linkedLibraryVersion = (LinkedLibraryVersion)GetProcAddress(lib, "adl_linkedLibraryVersion");
         adl_getBanksCount = (BankNamesCount)GetProcAddress(lib, "adl_getBanksCount");
         adl_getBankNames = (BankNamesList)GetProcAddress(lib, "adl_getBankNames");
+
+        if(adl_linkedLibraryVersion)
+        {
+            snprintf(version_string, sizeof(version_string), "Ver. %s", adl_linkedLibraryVersion());
+            SendDlgItemMessageA(hwnd, IDC_VERSION_LABEL, WM_SETTEXT, (LPARAM)0, (LPARAM)version_string);
+        }
+
         if(adl_getBanksCount && adl_getBankNames)
         {
             bMax = adl_getBanksCount();

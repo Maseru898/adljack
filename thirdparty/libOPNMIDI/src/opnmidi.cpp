@@ -2,7 +2,7 @@
  * libOPNMIDI is a free Software MIDI synthesizer library with OPN2 (YM2612) emulation
  *
  * MIDI parser and player (Original code from ADLMIDI): Copyright (c) 2010-2014 Joel Yliluoma <bisqwit@iki.fi>
- * OPNMIDI Library and YM2612 support:   Copyright (c) 2017-2025 Vitaly Novichkov <admin@wohlnet.ru>
+ * OPNMIDI Library and YM2612 support:   Copyright (c) 2017-2026 Vitaly Novichkov <admin@wohlnet.ru>
  *
  * Library is based on the ADLMIDI, a MIDI player for Linux and Windows with OPL3 emulation:
  * http://iki.fi/bisqwit/source/adlmidi.html
@@ -26,7 +26,7 @@
 #include "opnmidi_private.hpp"
 #include "chips/opn_chip_base.h"
 #ifndef OPNMIDI_DISABLE_MIDI_SEQUENCER
-#include "midi_sequencer.hpp"
+#include "midiseq/midi_sequencer.hpp"
 #endif
 
 /* Unify MIDI player casting and interface between ADLMIDI and OPNMIDI */
@@ -483,7 +483,7 @@ OPNMIDI_EXPORT void opn2_setVolumeRangeModel(struct OPN2_MIDIPlayer *device, int
     if(!synth.setupLocked())
     {
         if(play->m_setup.VolumeModel == OPNMIDI_VolumeModel_AUTO)//Use bank default volume model
-            synth.m_volumeScale = (Synth::VolumesScale)synth.m_insBankSetup.volumeModel;
+            synth.setFrequencyModel((Synth::VolumesScale)synth.m_insBankSetup.volumeModel);
         else
             synth.setVolumeScaleModel(static_cast<OPNMIDI_VolumeModels>(volumeModel));
     }
@@ -508,6 +508,21 @@ OPNMIDI_EXPORT int opn2_getChannelAllocMode(struct OPN2_MIDIPlayer *device)
     MidiPlayer *play = GET_MIDI_PLAYER(device);
     assert(play);
     return static_cast<int>(play->m_synth->m_channelAlloc);
+}
+
+OPNMIDI_EXPORT void opn2_setDeviceFilterMask(struct OPN2_MIDIPlayer *device, OPN2_UInt32 mask)
+{
+#ifndef OPNMIDI_DISABLE_MIDI_SEQUENCER
+    if(!device)
+        return;
+
+    MidiPlayer *play = GET_MIDI_PLAYER(device);
+    assert(play);
+    play->m_sequencerDeviceMask = mask;
+#else
+    (void)device;
+    (void)mask;
+#endif
 }
 
 OPNMIDI_EXPORT int opn2_getVolumeRangeModel(struct OPN2_MIDIPlayer *device)
@@ -828,7 +843,7 @@ OPNMIDI_EXPORT const char *opn2_metaMusicTitle(struct OPN2_MIDIPlayer *device)
         return "";
     MidiPlayer *play = GET_MIDI_PLAYER(device);
     assert(play);
-    return play->m_sequencer->getMusicTitle().c_str();
+    return play->m_sequencer->getMusicTitle();
 #else
     ADL_UNUSED(device);
     return "";
@@ -843,7 +858,7 @@ OPNMIDI_EXPORT const char *opn2_metaMusicCopyright(struct OPN2_MIDIPlayer *devic
         return "";
     MidiPlayer *play = GET_MIDI_PLAYER(device);
     assert(play);
-    return play->m_sequencer->getMusicCopyright().c_str();
+    return play->m_sequencer->getMusicCopyright();
 #else
     ADL_UNUSED(device);
     return 0;
@@ -857,7 +872,7 @@ OPNMIDI_EXPORT size_t opn2_metaTrackTitleCount(struct OPN2_MIDIPlayer *device)
         return 0;
     MidiPlayer *play = GET_MIDI_PLAYER(device);
     assert(play);
-    return play->m_sequencer->getTrackTitles().size();
+    return play->m_sequencer->getTrackTitles().size;
 #else
     ADL_UNUSED(device);
     return 0;
@@ -871,10 +886,10 @@ OPNMIDI_EXPORT const char *opn2_metaTrackTitle(struct OPN2_MIDIPlayer *device, s
         return "";
     MidiPlayer *play = GET_MIDI_PLAYER(device);
     assert(play);
-    const std::vector<std::string> &titles = play->m_sequencer->getTrackTitles();
-    if(index >= titles.size())
+    const MidiSequencer::MusTrackTitlesList &titles = play->m_sequencer->getTrackTitles();
+    if(index >= titles.size)
         return "INVALID";
-    return titles[index].c_str();
+    return reinterpret_cast<const char*>(play->m_sequencer->getData(titles[index]));
 #else
     ADL_UNUSED(device);
     ADL_UNUSED(index);
@@ -890,7 +905,7 @@ OPNMIDI_EXPORT size_t opn2_metaMarkerCount(struct OPN2_MIDIPlayer *device)
         return 0;
     MidiPlayer *play = GET_MIDI_PLAYER(device);
     assert(play);
-    return play->m_sequencer->getMarkers().size();
+    return play->m_sequencer->getMarkers().size;
 #else
     ADL_UNUSED(device);
     return 0;
@@ -913,8 +928,8 @@ OPNMIDI_EXPORT Opn2_MarkerEntry opn2_metaMarker(struct OPN2_MIDIPlayer *device, 
     MidiPlayer *play = GET_MIDI_PLAYER(device);
     assert(play);
 
-    const std::vector<MidiSequencer::MIDI_MarkerEntry> &markers = play->m_sequencer->getMarkers();
-    if(index >= markers.size())
+    const MidiSequencer::MusMarkersList &markers = play->m_sequencer->getMarkers();
+    if(index >= markers.size)
     {
         marker.label = "INVALID";
         marker.pos_time = 0.0;
@@ -923,7 +938,7 @@ OPNMIDI_EXPORT Opn2_MarkerEntry opn2_metaMarker(struct OPN2_MIDIPlayer *device, 
     }
 
     const MidiSequencer::MIDI_MarkerEntry &mk = markers[index];
-    marker.label = mk.label.c_str();
+    marker.label = reinterpret_cast<const char*>(play->m_sequencer->getData(mk.label));
     marker.pos_time = mk.pos_time;
     marker.pos_ticks = (unsigned long)mk.pos_ticks;
 #else

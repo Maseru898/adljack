@@ -1,7 +1,7 @@
 /*
  * Interfaces over Yamaha OPL3 (YMF262) chip emulators
  *
- * Copyright (c) 2017-2025 Vitaly Novichkov (Wohlstand)
+ * Copyright (c) 2017-2026 Vitaly Novichkov (Wohlstand)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -21,6 +21,7 @@
 #include "ymfm_opna.h"
 #include "ymfm/ymfm_opn.h"
 #include <cstring>
+#include <assert.h>
 
 struct YmFmOPNA_Private
 {
@@ -46,7 +47,7 @@ YmFmOPNA::YmFmOPNA(OPNFamily f) :
     ymfm::ym2608::output_data* output = new ymfm::ym2608::output_data;
     output->clear();
     m_output = output;
-    setRate(m_rate, m_clock);
+    YmFmOPNA::setRate(m_rate, m_clock);
     writeReg(0, 0x29, 0x9f);  // enable channels 4-6
 }
 
@@ -98,6 +99,7 @@ void YmFmOPNA_Private::writeReg(uint32_t port, uint16_t addr, uint8_t data)
         m_headPos = 0;
 
     ++m_queueCount;
+    assert(m_queueCount < (long)YmFmOPNA::c_queueSize);
 }
 
 void YmFmOPNA::writePan(uint16_t /*addr*/, uint8_t /*data*/)
@@ -159,4 +161,9 @@ void YmFmOPNA_Private::nativeGenerate(int16_t *frame, void *m_chip, void *m_outp
 const char *YmFmOPNA::emulatorName()
 {
     return "YMFM OPNA";
+}
+
+bool YmFmOPNA::hasFullPanning()
+{
+    return false;
 }

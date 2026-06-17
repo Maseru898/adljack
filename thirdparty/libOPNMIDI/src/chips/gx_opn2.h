@@ -1,7 +1,7 @@
 /*
  * Interfaces over Yamaha OPN2 (YM2612) chip emulators
  *
- * Copyright (c) 2017-2025 Vitaly Novichkov (Wohlstand)
+ * Copyright (c) 2017-2026 Vitaly Novichkov (Wohlstand)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -41,6 +41,7 @@ public:
     void nativePostGenerate() override;
     void nativeGenerate(int16_t *frame) override;
     const char *emulatorName() override;
+    bool hasFullPanning() override;
 };
 
 #endif // GX_OPN2_H

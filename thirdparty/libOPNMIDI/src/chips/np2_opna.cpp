@@ -1,7 +1,7 @@
 /*
  * Interfaces over Yamaha OPN2 (YM2612) chip emulators
  *
- * Copyright (c) 2017-2025 Vitaly Novichkov (Wohlstand)
+ * Copyright (c) 2017-2026 Vitaly Novichkov (Wohlstand)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -88,6 +88,18 @@ template <>
 const char *NP2OPNA<FM::OPNB>::emulatorName()
 {
     return "Neko Project II Kai OPNB";  // git 2018-10-28 rev e1c0609
+}
+
+template<>
+bool NP2OPNA<FM::OPNA>::hasFullPanning()
+{
+    return true;
+}
+
+template<>
+bool NP2OPNA<FM::OPNB>::hasFullPanning()
+{
+    return true;
 }
 
 // template class NP2OPNA<FM::OPN2>;

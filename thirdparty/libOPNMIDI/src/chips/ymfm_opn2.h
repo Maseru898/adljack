@@ -1,7 +1,7 @@
 /*
  * Interfaces over Yamaha OPL3 (YMF262) chip emulators
  *
- * Copyright (c) 2017-2025 Vitaly Novichkov (Wohlstand)
+ * Copyright (c) 2017-2026 Vitaly Novichkov (Wohlstand)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -28,7 +28,7 @@ class YmFmOPN2 final : public OPNChipBaseT<YmFmOPN2>
     void *m_chip;
     void *m_intf;
 
-    static const size_t c_queueSize = 500;
+    static const size_t c_queueSize = 2048;
 
     struct Reg
     {
@@ -54,6 +54,7 @@ public:
     void nativePostGenerate() override {}
     void nativeGenerate(int16_t *frame) override;
     const char *emulatorName() override;
+    bool hasFullPanning() override;
 };
 
 #endif // YMFM_OPN2_H

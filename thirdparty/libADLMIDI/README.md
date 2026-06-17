@@ -3,15 +3,15 @@ libADLMIDI is a free Software MIDI synthesizer library with OPL3 emulation
 
 Original ADLMIDI code: Copyright (c) 2010-2014 Joel Yliluoma <bisqwit@iki.fi>
 
-ADLMIDI Library API:   Copyright (c) 2015-2025 Vitaly Novichkov <admin@wohlnet.ru>
+ADLMIDI Library API:   Copyright (c) 2015-2026 Vitaly Novichkov <admin@wohlnet.ru>
 
 Library is based on the ADLMIDI, a MIDI player for Linux and Windows with OPL3 emulation:
 
 [https://bisqwit.iki.fi/source/adlmidi.html](https://bisqwit.iki.fi/source/adlmidi.html)
 
-* Semaphore-CI: [![Build Status](https://semaphoreci.com/api/v1/wohlstand/libadlmidi/branches/master/shields_badge.svg)](https://semaphoreci.com/wohlstand/libadlmidi)
-* AppVeyor CI: [![Build status](https://ci.appveyor.com/api/projects/status/bfhwdsm13s17rn49?svg=true)](https://ci.appveyor.com/project/Wohlstand/libadlmidi)
-* Travis CI: [![Build Status](https://travis-ci.org/Wohlstand/libADLMIDI.svg?branch=master)](https://travis-ci.org/Wohlstand/libADLMIDI)
+* Semaphore-CI: [![Build Status](https://wohlsoft.semaphoreci.com/badges/libADLMIDI/branches/master.svg?style=shields)](https://wohlsoft.semaphoreci.com/projects/libADLMIDI)
+* AppVeyor CI: [![Build Status](https://ci.appveyor.com/api/projects/status/bfhwdsm13s17rn49?svg=true)](https://ci.appveyor.com/project/Wohlstand/libadlmidi)
+* GitHub Actions: [![Windows Build](https://github.com/Wohlstand/libADLMIDI/actions/workflows/windows-ci.yml/badge.svg)](https://github.com/Wohlstand/libADLMIDI/actions/workflows/windows-ci.yml) [![Ubuntu Build](https://github.com/Wohlstand/libADLMIDI/actions/workflows/ubuntu-ci.yml/badge.svg)](https://github.com/Wohlstand/libADLMIDI/actions/workflows/ubuntu-ci.yml)  [![macOS Build](https://github.com/Wohlstand/libADLMIDI/actions/workflows/macos-ci.yml/badge.svg)](https://github.com/Wohlstand/libADLMIDI/actions/workflows/macos-ci.yml)
 
 # Differences with original tool
 * Reverb code has been removed.
@@ -184,7 +184,38 @@ To build that example you will need to have installed SDL2 library.
 * Add support of MIDI Format 2 files
 
 # Changelog
-## dev
+## 1.6.2   dev
+ * Fixed the random stuck problem in the DOS version of the ADLMIDI player.
+ * Added support for HMI and HMP files!
+ * Added support for in-track (local) loops.
+ * Optimized work with chip instruments.
+ * The panic will be always triggered on attempt to switch the bank.
+ * Improved sounding accuracy at DMX banks.
+ * Added MS Adlib driver's for Win3x volume model.
+ * Added IMF Creator's volume model.
+ * Added Jammie O'Connel's FM Synth volume model.
+ * Added support for DMX OP2's Fixed Note feature for melodic instruments.
+ * Fixed the unexpected playback distortion while playing IMF/CMF/KLM files using DosBox OPL3 emulator.
+ * Fixed unexpected non-GM instruments from embedded bank appears when loading custom GM-only bank.
+ * Added `adl_rt_rawOPL3()` public API to send raw OPL3 register writes to a specific chip, reusing the same internal routing used by IMF/KLM playback. Allows callers to render raw-OPL formats alongside MIDI playback on the same chip.
+ * Added `adl_reserveChipChannels()` / `adl_getReservedChipChannels()` public API for per-chip bitmask reservation of chip channels, so the MIDI voice allocator will skip them and leave them free for raw OPL writes.
+ * The Nuked OPL3 v1.8 got been slightly updated to sync with the mainstream to have all recent envelope generator fixes.
+ * The old Nuked OPL3 v1.7 emulator is replaced with an optimised alternative fork by tgies.
+ * Added Nuked CQM emulator (Emulator of the Creative's OPL3 clone chip known as Creative Quadratic Modulation).
+ * Fixed the silence problem at the MIDI channel after playing too many notes without Note OFF event.
+ * Fixed the work of the DOS-built MIDI player under Windows 9x without the dead freeze.
+ * Added `adl_setDeviceFilterMask()` public API to assign the device filter mask for the HMI/HMP/EMIDI tracks disabling/enabling.
+
+## 1.6.1   2025-09-22
+ * WinMM: Fixed random crash on waveOutOpen initialisation because of incorrect initialisation structure usage.
+ * Fixed crash when playing too many notes at the same channel.
+ * Fixed an unexpected loud noise sounding after switching bank from the 4-op only to 2-op on the fly.
+ * WinMM: Fixed sound damange when switching between banks while playing some music streams.
+ * Fixed the crash when playing some files with Auto-Arpeggio enabled.
+ * Added support for KLM music files from the Wacky Wheels game.
+ * Fixed buffered data corruption that leads a noisy output at some emulators (primarily at the LLE-OPL3).
+
+## 1.6.0   2025-07-05
  * Fixed the work on big endian processors
  * Fixed ARM64 build on some platforms
  * Improved support of the EA-MUS files (Thanks to [dashodanger](https://github.com/dashodanger))

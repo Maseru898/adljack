@@ -1,7 +1,7 @@
 /*
  * Interfaces over Yamaha OPL3 (ym3812) chip emulators
  *
- * Copyright (c) 2017-2025 Vitaly Novichkov (Wohlstand)
+ * Copyright (c) 2017-2026 Vitaly Novichkov (Wohlstand)
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -73,7 +73,7 @@ void YmFmOPL2::nativeGenerate(int16_t *frame)
     ymfm::ym3812 *chip_r = reinterpret_cast<ymfm::ym3812*>(m_chip);
     ymfm::ym3812::output_data frames_i;
 
-    uint32_t addr1 = 0xffff, addr2 = 0xffff;
+    uint16_t addr1 = 0xffff, addr2 = 0xffff;
     uint8_t data1 = 0, data2 = 0;
 
     // see if there is data to be written; if so, extract it and dequeue

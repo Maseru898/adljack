@@ -2,7 +2,7 @@
  * libOPNMIDI is a free Software MIDI synthesizer library with OPN2 (YM2612) emulation
  *
  * MIDI parser and player (Original code from ADLMIDI): Copyright (c) 2010-2014 Joel Yliluoma <bisqwit@iki.fi>
- * OPNMIDI Library and YM2612 support:   Copyright (c) 2017-2025 Vitaly Novichkov <admin@wohlnet.ru>
+ * OPNMIDI Library and YM2612 support:   Copyright (c) 2017-2026 Vitaly Novichkov <admin@wohlnet.ru>
  *
  * Library is based on the ADLMIDI, a MIDI player for Linux and Windows with OPL3 emulation:
  * http://iki.fi/bisqwit/source/adlmidi.html
@@ -29,7 +29,7 @@ extern "C" {
 #endif
 
 #define OPNMIDI_VERSION_MAJOR       1
-#define OPNMIDI_VERSION_MINOR       5
+#define OPNMIDI_VERSION_MINOR       6
 #define OPNMIDI_VERSION_PATCHLEVEL  1
 
 #define OPNMIDI_TOSTR_I(s) #s
@@ -48,13 +48,16 @@ extern "C" {
 #include <stdint.h>
 typedef uint8_t         OPN2_UInt8;
 typedef uint16_t        OPN2_UInt16;
+typedef uint32_t        OPN2_UInt32;
 typedef int8_t          OPN2_SInt8;
 typedef int16_t         OPN2_SInt16;
 #else
 typedef unsigned char   OPN2_UInt8;
 typedef unsigned short  OPN2_UInt16;
+typedef unsigned int    OPN2_UInt32;
 typedef char            OPN2_SInt8;
 typedef short           OPN2_SInt16;
+typedef int             OPN2_SInt32;
 #endif
 
 
@@ -143,6 +146,34 @@ enum OPNMIDI_ChannelAlloc
     OPNMIDI_ChanAlloc_AnyReleased,
     /*! Count of available channel allocation modes */
     OPNMIDI_ChanAlloc_Count
+};
+
+/**
+ * @brief Device types to filter incompatible MIDI tracks, primarily used by HMI/HMP and EMIDI.
+ * Can be combined to enable more tracks.
+ */
+enum OPNMIDI_DeviceFilter
+{
+    OPNMIDI_Device_GeneralMidi      = 0x0001, /* MPU-401 counted as here */
+    OPNMIDI_Device_OPL2             = 0x0002,
+    OPNMIDI_Device_OPL3             = 0x0004,
+    OPNMIDI_Device_MT32             = 0x0008,
+    OPNMIDI_Device_AWE32            = 0x0010,
+    OPNMIDI_Device_WaveBlaster      = 0x0020,
+    OPNMIDI_Device_ProAudioSpectrum = 0x0040,
+    OPNMIDI_Device_SoundMan16       = 0x0080,
+    OPNMIDI_Device_DIGI             = 0x0100, /* Digital samples controlled by MIDI */
+    OPNMIDI_Device_SoundScape       = 0x0200,
+    OPNMIDI_Device_WaveTable        = 0x0400,
+    OPNMIDI_Device_GravisUltrasound = 0x0800,
+    OPNMIDI_Device_PCSpeaker        = 0x1000,
+    OPNMIDI_Device_Callback         = 0x2000,
+    OPNMIDI_Device_SoundMasterII    = 0x4000,
+
+    OPNMIDI_Device_FM               = OPNMIDI_Device_OPL2|OPNMIDI_Device_OPL3|OPNMIDI_Device_ProAudioSpectrum|OPNMIDI_Device_SoundMan16,
+    OPNMIDI_Device_AdLib            = OPNMIDI_Device_OPL2,
+    OPNMIDI_Device_SoundBlaster     = OPNMIDI_Device_OPL2|OPNMIDI_Device_OPL3,
+    OPNMIDI_Device_ANY              = 0xFFFF
 };
 
 /**
@@ -418,9 +449,20 @@ extern OPNMIDI_DECLSPEC void opn2_setChipType(struct OPN2_MIDIPlayer *device, in
 extern OPNMIDI_DECLSPEC int opn2_getChipType(struct OPN2_MIDIPlayer *device);
 
 /**
- * @brief Override Enable(1) or Disable(0) scaling of modulator volumes. -1 - use bank default scaling of modulator volumes
+ * @brief Override Enable(1) or Disable(0) scaling of modulators by volumes. -1 - use bank default scaling of modulator volumes
  * @param device Instance of the library
  * @param smod 0 - disabled, 1 - enabled
+ *
+ * When this feature is enabled, all the modulators will scale together with the volume
+ * that will cuase an effect of sound smoothing. However, it's better to use the CC74
+ * to explicitly control the volume of modulators when it's needed, otherwise using
+ * of this feature causes a lot of problems. It's possible that this feature will be
+ * removed eventually and this function will become useless.
+ *
+ * IMPORTANT: If you develop music player or plugin, or integrate this to somewhere,
+ * suggested to don't add binding to this feature and keep it always disabled.
+ *
+ * Details: https://github.com/Wohlstand/libOPNMIDI/issues/125
  */
 extern OPNMIDI_DECLSPEC void opn2_setScaleModulators(struct OPN2_MIDIPlayer *device, int smod);
 
@@ -518,6 +560,18 @@ extern OPNMIDI_DECLSPEC void opn2_setChannelAllocMode(struct OPN2_MIDIPlayer *de
 extern OPNMIDI_DECLSPEC int opn2_getChannelAllocMode(struct OPN2_MIDIPlayer *device);
 
 /**
+ * @brief Assigns the device filter to enable/disable tracks in special formats like HMI/HMP or EMIDI
+ *
+ * The value must be assigned before loading a file, otherwise it will not work as intended.
+ *
+ * When library was built without MIDI sequencer, this function gives no effect.
+ *
+ * @param device Instance of the library
+ * @param mask Mask of the device (#OPNMIDI_DeviceFilter)
+ */
+extern OPNMIDI_DECLSPEC void opn2_setDeviceFilterMask(struct OPN2_MIDIPlayer *device, OPN2_UInt32 mask);
+
+/**
  * @brief Load WOPN bank file from File System
  *
  * Is recommended to call opn2_reset() to apply changes to already-loaded file player or real-time.
@@ -582,6 +636,14 @@ enum Opn2_Emulator
     OPNMIDI_VGM_DUMPER,
     /*! Nuked OPN2 (YM2612 mode) */
     OPNMIDI_EMU_NUKED_YM2612,
+    /*! Very low-level variant of Nuked OPN2 (YM2612) */
+    OPNMIDI_EMU_NUKED_YM2612_LLE,
+    /*! Very low-level variant of Nuked OPNA (YM2608) */
+    OPNMIDI_EMU_NUKED_YM2608_LLE,
+    /*! Very low-level variant of Nuked OPN2 (YM3438) */
+    OPNMIDI_EMU_NUKED_YM3438_LLE,
+    /*! Very low-level variant of Nuked OPN2 (YMF276) */
+    OPNMIDI_EMU_NUKED_YMF276_LLE,
     /*! Count instrument on the level */
     OPNMIDI_EMU_end,
 
