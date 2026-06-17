@@ -1,0 +1,59 @@
+Source: adljack
+Section: unstable
+Priority: optional
+Maintainer: Marcel Weissenbach <marcel.weissenbach@cybertrust.co.jp>
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake,
+ libasyncns-dev,
+ libflac-dev,
+ libmp3lame-dev,
+ libmpg123-dev,
+ libogg-dev,
+ libopus-dev,
+ libsndfile1-dev,
+ libsystemd-dev,
+ libvorbis-dev,
+ libx11-dev,
+ libx11-xcb-dev,
+ libxcb1-dev,
+ libxau-dev,
+ libxdmcp-dev,
+ libncurses-dev,
+ libtinfo6,
+ libpulse-dev,
+ libasound2-dev,
+ libdbus-1-dev,
+Standards-Version: 4.7.3
+Homepage: https://github.com/Wohlstand/adljack
+Rules-Requires-Root: no
+
+Package: adljack
+Section: unstable
+Architecture: any
+Multi-Arch: foreign
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ libasound2t64,
+ libasyncns0,
+ libdbus-1-3,
+ libflac14,
+ libmp3lame0,
+ libmpg123-0t64,
+ libncursesw6,
+ libogg0,
+ libopus0,
+ libpulse0,
+ libsndfile1,
+ libstdc++6,
+ libsystemd0,
+ libtinfo6,
+ libvorbis0a,
+ libvorbisenc2,
+ libx11-6,
+ libx11-xcb1,
+ libxau6,
+ libxcb1,
+ libxdmcp6,
+Description: OPL3/OPN2 synthesizer using ADLMIDI and OPNMIDI
